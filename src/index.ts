@@ -17,10 +17,13 @@ app.use('/api', Routers);
 
 // Run migrations
 
+// Serve static files
+app.use(express.static('public'));
+
+
 (async () => {
   await MigrateLatest.run()
 })()
-
 // Test database connection
 try {
   db.raw('SELECT 1')
