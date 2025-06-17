@@ -1,46 +1,70 @@
 import { Request, Response } from 'ultimate-express';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import { hashPassword, verifyPassword } from '../utils/hash';
 import { db } from '../config/database';
-import { v4 as uuid } from 'uuid'
-import redisClient from '../services/redis';
-import { getExpiryTime } from '../utils/helper';
-
-interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    name: string,
-    email: string,
-    session_id: string;
-  };
-}
+import { v4 as uuid } from 'uuid';
+import { AuthService } from '../services/auth';
+import { SessionService } from '../services/session';
+import { AuthRequest } from '../middlewares/auth';
 
 export class UserController {
   static async register(req: Request, res: Response) {
     try {
       const { name, email, password } = req.body;
 
-      // Hash password
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
+      // Validasi input
+      if (!name || !email || !password) {
+        return res.status(400).json({
+          code: 'VALIDATION_ERROR',
+          message: 'Name, email, and password are required'
+        });
+      }
 
-      // Get generated id
-      const id = uuid();
+      if (password.length < 6) {
+        return res.status(400).json({
+          code: 'VALIDATION_ERROR',
+          message: 'Password must be at least 6 characters long'
+        });
+      }
+
+      // Check if user already exists
+      const existingUser = await db('users').where({ email }).first();
+      if (existingUser) {
+        return res.status(400).json({
+          code: 'USER_EXISTS',
+          message: 'User with this email already exists'
+        });
+      }
+
+      // Hash password
+      const hashedPassword = await hashPassword(password);
+      const userId = uuid();
 
       // Create user
-      const [userId] = await db('users').insert({
-        id,
+      const [user] = await db('users').insert({
+        id: userId,
         name,
         email,
-        password: hashedPassword
-      });
+        password: hashedPassword,
+        created_at: new Date(),
+        updated_at: new Date()
+      }).returning(['id', 'name', 'email', 'created_at']);
 
       res.status(201).json({
+        code: 'REGISTER_SUCCESS',
         message: 'User registered successfully',
-        userId
+        data: {
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            createdAt: user.created_at
+          }
+        }
       });
     } catch (error) {
+      console.error('Register error:', error);
       res.status(500).json({
+        code: 'REGISTER_ERROR',
         message: 'Error registering user',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -49,55 +73,93 @@ export class UserController {
 
   static async login(req: Request, res: Response) {
     try {
-      const { email, password } = req.body;
+      const { email, password, deviceId } = req.body;
+
+      // Validasi input
+      if (!email || !password) {
+        return res.status(400).json({
+          code: 'VALIDATION_ERROR',
+          message: 'Email and password are required'
+        });
+      }
 
       // Find user
       const user = await db('users').where({ email }).first();
       if (!user) {
-        return res.status(404).json({ message: 'User not found' });
+        return res.status(401).json({
+          code: 'INVALID_CREDENTIALS',
+          message: 'Invalid email or password'
+        });
       }
 
       // Verify password
-      const validPassword = await bcrypt.compare(password, user.password);
+      const validPassword = await verifyPassword(password, user.password);
       if (!validPassword) {
-        return res.status(400).json({ message: 'Invalid password' });
+        return res.status(401).json({
+          code: 'INVALID_CREDENTIALS',
+          message: 'Invalid email or password'
+        });
       }
 
-      const sessionId = uuid();
-      const expiresAt = getExpiryTime(1)
+      // Login menggunakan AuthService
+      const sessionService = new SessionService();
+      const authService = new AuthService(sessionService);
 
-      // Add session
+      const userAgent = req.headers['user-agent'] || 'unknown';
+      const ip = req.ip || req.connection.remoteAddress || 'unknown';
 
-      const [session] = await db("sessions").insert({
-        id: sessionId,
-        user_id: user.id,
-        expired_at: expiresAt,
-      }).returning("*")
-
-      const sessionData = JSON.stringify({
-        ...session,
-        name: user.name,
-        email: user.email,
-      })
-
-      // Chache in redis
-
-      await redisClient.set(sessionId, sessionData, { EX: 3600 })
-
-      // Generate JWT token
-      const token = jwt.sign(
-        { session_id: sessionId },
-        process.env.JWT_SECRET!,
-        { expiresIn: '1h' }
-      );
+      const loginResult = await authService.login(user, userAgent, ip, deviceId);
 
       res.json({
+        code: 'LOGIN_SUCCESS',
         message: 'Login successful',
-        token
+        data: {
+          accessToken: loginResult.accessToken,
+          refreshToken: loginResult.refreshToken,
+          user: loginResult.user,
+          session: loginResult.session
+        }
       });
     } catch (error) {
+      console.error('Login error:', error);
       res.status(500).json({
-        message: 'Error logging in',
+        code: 'LOGIN_ERROR',
+        message: 'Error during login',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  static async refreshToken(req: Request, res: Response) {
+    try {
+      const { refreshToken } = req.body;
+
+      if (!refreshToken) {
+        return res.status(400).json({
+          code: 'VALIDATION_ERROR',
+          message: 'Refresh token is required'
+        });
+      }
+
+      const sessionService = new SessionService();
+      const authService = new AuthService(sessionService);
+
+      const result = await authService.refreshAccessToken(refreshToken);
+
+      res.json({
+        code: 'REFRESH_SUCCESS',
+        message: 'Token refreshed successfully',
+        data: {
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken
+        }
+      });
+
+    } catch (error) {
+      console.error('Refresh token error:', error);
+      res.status(401).json({
+        code: 'REFRESH_ERROR',
+        message: 'Failed to refresh token',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -105,22 +167,59 @@ export class UserController {
 
   static async logout(req: AuthRequest, res: Response) {
     try {
-      const sessionId = req.user?.session_id;
+      const sessionId = req.user?.sessionId;
 
       if (!sessionId) {
-        return res.status(400).json({ message: 'No active session' });
+        return res.status(401).json({
+          code: 'UNAUTHORIZED',
+          message: 'No active session found'
+        });
       }
 
-      // Delete session
-      await db("sessions").where({ id: sessionId }).del();
+      const sessionService = new SessionService();
+      const authService = new AuthService(sessionService);
 
-      // Delete cache
-      await redisClient.del(sessionId);
+      await authService.logout(sessionId);
 
-      res.json({ message: 'Logout successful' });
+      res.json({
+        code: 'LOGOUT_SUCCESS',
+        message: 'Logout successful'
+      });
     } catch (error) {
+      console.error('Logout error:', error);
       res.status(500).json({
-        message: 'Error logging out',
+        code: 'LOGOUT_ERROR',
+        message: 'Error during logout',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  static async logoutAllDevices(req: AuthRequest, res: Response) {
+    try {
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          code: 'UNAUTHORIZED',
+          message: 'User not authenticated'
+        });
+      }
+
+      const sessionService = new SessionService();
+      const authService = new AuthService(sessionService);
+
+      await authService.logoutAllDevices(userId);
+
+      res.json({
+        code: 'LOGOUT_ALL_SUCCESS',
+        message: 'Logged out from all devices successfully'
+      });
+    } catch (error) {
+      console.error('Logout all devices error:', error);
+      res.status(500).json({
+        code: 'LOGOUT_ALL_ERROR',
+        message: 'Error logging out from all devices',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -129,19 +228,78 @@ export class UserController {
   static async getProfile(req: AuthRequest, res: Response) {
     try {
       const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          code: 'UNAUTHORIZED',
+          message: 'User not authenticated'
+        });
+      }
+
       const user = await db('users')
         .where({ id: userId })
-        .select('id', 'name', 'email')
+        .select('id', 'name', 'email', 'created_at', 'updated_at')
         .first();
 
       if (!user) {
-        return res.status(404).json({ message: 'User not found' });
+        return res.status(404).json({
+          code: 'USER_NOT_FOUND',
+          message: 'User not found'
+        });
       }
 
-      res.json(user);
+      res.json({
+        code: 'SUCCESS',
+        message: 'Profile retrieved successfully',
+        data: {
+          user
+        }
+      });
     } catch (error) {
+      console.error('Get profile error:', error);
       res.status(500).json({
+        code: 'PROFILE_ERROR',
         message: 'Error fetching profile',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  static async getSessions(req: AuthRequest, res: Response) {
+    try {
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          code: 'UNAUTHORIZED',
+          message: 'User not authenticated'
+        });
+      }
+
+      const sessionService = new SessionService();
+      const authService = new AuthService(sessionService);
+
+      const sessions = await authService.getUserActiveSessions(userId);
+
+      res.json({
+        code: 'SUCCESS',
+        message: 'Sessions retrieved successfully',
+        data: {
+          sessions: sessions.map(session => ({
+            sessionId: session.sessionId,
+            deviceId: session.deviceId,
+            userAgent: session.userAgent,
+            ip: session.ip,
+            createdAt: session.createdAt,
+            expiredAt: session.expiredAt
+          }))
+        }
+      });
+    } catch (error) {
+      console.error('Get sessions error:', error);
+      res.status(500).json({
+        code: 'SESSIONS_ERROR',
+        message: 'Error fetching sessions',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }

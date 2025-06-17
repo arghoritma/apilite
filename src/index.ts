@@ -1,6 +1,6 @@
 import express from "ultimate-express";
 import dotenv from "dotenv";
-import userRoutes from './routes/userRoutes';
+import Routers from "./routes"
 import { db } from './config/database';
 import MigrateLatest from './commands/migrate-latest';
 // Load environment variables
@@ -13,7 +13,7 @@ const app = express();
 app.use(express.json());
 
 // API routes
-app.use('/api/users', userRoutes);
+app.use('/api', Routers);
 
 // Run migrations
 

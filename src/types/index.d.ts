@@ -2,7 +2,8 @@ export interface UserPayload {
   id: string;
   name: string;
   email: string;
-  session_id: string;
+  sessionId: string;
+  deviceId: string;
 }
 
 // Lakukan "declaration merging" untuk menambahkan properti custom ke interface Request

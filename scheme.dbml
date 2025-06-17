@@ -1,0 +1,29 @@
+Table users {
+  id string [pk]
+  name string [not null]
+  email string [unique, not null]
+  password string [not null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table user_sessions {
+  id string [pk]
+  user_id string [ref: > users.id]
+  device_id string [not null]
+  ip_address varchar(45)
+  user_agent text
+  is_active boolean [default: true]
+  created_at timestamp
+  last_used_at timestamp
+  expired_at timestamp
+}
+
+Table refresh_tokens {
+  id uuid [pk]
+  session_id uuid [ref: > user_sessions.id]
+  token_hash text [not null]
+  revoked boolean [default: false]
+  created_at timestamp
+  expired_at timestamp
+}

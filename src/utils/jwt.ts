@@ -5,19 +5,53 @@ dotenv.config()
 const ACCESS_SECRET = process.env.ACCESS_SECRET as string
 const REFRESH_SECRET = process.env.REFRESH_SECRET as string
 
-
-export function signAccessToken(userId: string) {
-  return jwt.sign({ userId }, ACCESS_SECRET, { expiresIn: '10m' })
+export interface AccessTokenPayload {
+  userId: string;
+  sessionId: string;
+  deviceId: string;
+  type: 'access';
 }
 
-export function signRefreshToken(userId: string, deviceId: string) {
-  return jwt.sign({ userId, deviceId }, REFRESH_SECRET, { expiresIn: '30d' })
+export interface RefreshTokenPayload {
+  userId: string;
+  sessionId: string;
+  deviceId: string;
+  type: 'refresh';
 }
 
-export function verifyAccessToken(token: string) {
-  return jwt.verify(token, ACCESS_SECRET)
-}
 
-export function verifyRefreshToken(token: string) {
-  return jwt.verify(token, REFRESH_SECRET)
-}
+
+export const signAccessToken = (userId: string, sessionId: string, deviceId: string): string => {
+  return jwt.sign(
+    {
+      userId,
+      sessionId,
+      deviceId,
+      type: 'access'
+    } as AccessTokenPayload,
+    ACCESS_SECRET,
+    { expiresIn: '15m' }
+  );
+};
+
+export const signRefreshToken = (userId: string, sessionId: string, deviceId: string): string => {
+  return jwt.sign(
+    {
+      userId,
+      sessionId,
+      deviceId,
+      type: 'refresh'
+    } as RefreshTokenPayload,
+    REFRESH_SECRET,
+    { expiresIn: '30d' }
+  );
+};
+
+export const verifyAccessToken = (token: string): AccessTokenPayload => {
+  return jwt.verify(token, ACCESS_SECRET) as AccessTokenPayload;
+};
+
+export const verifyRefreshToken = (token: string): RefreshTokenPayload => {
+  return jwt.verify(token, REFRESH_SECRET) as RefreshTokenPayload;
+};
+
