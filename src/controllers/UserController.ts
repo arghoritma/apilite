@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { db } from '../config/database';
 import { v4 as uuid } from 'uuid'
-import redisClient from '../services/redisClient';
+import redisClient from '../services/redis';
 import { getExpiryTime } from '../utils/helper';
 
 interface AuthRequest extends Request {

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "ultimate-express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { db } from "../config/database";
 import dotenv from "dotenv";
-import redisClient from "@/services/redisClient";
+import redisClient from "../services/redis";
 dotenv.config;
 
 export interface AuthRequest extends Request {

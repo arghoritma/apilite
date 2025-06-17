@@ -1,4 +1,4 @@
-// src/services/redisClient.ts
+
 import { createClient } from 'redis';
 import 'dotenv/config';
 
@@ -8,7 +8,6 @@ const redisClient = createClient({
 
 redisClient.on('error', (err) => console.log('Redis Client Error', err));
 
-// Hubungkan klien di awal
 (async () => {
   await redisClient.connect();
 })();
