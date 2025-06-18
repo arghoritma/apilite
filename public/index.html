@@ -131,28 +131,69 @@
         <h2 class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">
           API Endpoints
         </h2>
-        <div class="space-y-3 sm:space-y-4">
-          <div class="border-l-4 border-blue-600 pl-4 py-2 bg-gray-50">
-            <h3 class="font-semibold text-base sm:text-lg">
-              POST /api/users/register
-            </h3>
-            <p class="text-sm sm:text-base text-gray-600">
-              Registrasi pengguna baru
-            </p>
+        <div class="space-y-4">
+          <!-- Register Endpoint -->
+          <div
+            class="border-l-4 border-blue-600 pl-4 py-3 bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+          >
+            <div class="flex-1 min-w-0">
+              <p
+                class="text-sm sm:text-base text-gray-600 font-medium mb-1 sm:mb-0"
+              >
+                Register new user account
+              </p>
+              <h3 class="font-semibold text-base sm:text-lg break-all">
+                POST
+                <span class="text-blue-700 break-all">/api/users/register</span>
+              </h3>
+            </div>
+            <div class="w-full sm:w-auto">
+              <code
+                class="block bg-gray-200 text-gray-800 rounded px-3 py-2 text-xs sm:text-sm whitespace-pre overflow-x-auto"
+              >
+                { "name": "John Doe", "email": "john@example.com", "password":
+                "password123" }
+              </code>
+            </div>
           </div>
-          <div class="border-l-4 border-blue-600 pl-4 py-2 bg-gray-50">
-            <h3 class="font-semibold text-base sm:text-lg">
-              POST /api/users/login
-            </h3>
-            <p class="text-sm sm:text-base text-gray-600">Login pengguna</p>
+          <!-- Login Endpoint -->
+          <div
+            class="border-l-4 border-blue-600 pl-4 py-3 bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+          >
+            <div class="flex-1 min-w-0">
+              <p
+                class="text-sm sm:text-base text-gray-600 font-medium mb-1 sm:mb-0"
+              >
+                Login to existing account
+              </p>
+              <h3 class="font-semibold text-base sm:text-lg break-all">
+                POST
+                <span class="text-blue-700 break-all">/api/users/login</span>
+              </h3>
+            </div>
+            <div class="w-full sm:w-auto">
+              <code
+                class="block bg-gray-200 text-gray-800 rounded px-3 py-2 text-xs sm:text-sm whitespace-pre overflow-x-auto"
+              >
+                { "email": "john@example.com", "password": "password123" }
+              </code>
+            </div>
           </div>
-          <div class="border-l-4 border-blue-600 pl-4 py-2 bg-gray-50">
-            <h3 class="font-semibold text-base sm:text-lg">
-              GET /api/users/profile
-            </h3>
-            <p class="text-sm sm:text-base text-gray-600">
-              Mendapatkan profil pengguna (memerlukan autentikasi)
-            </p>
+          <!-- Profile Endpoint -->
+          <div
+            class="border-l-4 border-blue-600 pl-4 py-3 bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+          >
+            <div class="flex-1 min-w-0">
+              <p
+                class="text-sm sm:text-base text-gray-600 font-medium mb-1 sm:mb-0"
+              >
+                Mendapatkan profil pengguna (memerlukan autentikasi)
+              </p>
+              <h3 class="font-semibold text-base sm:text-lg break-all">
+                GET
+                <span class="text-blue-700 break-all">/api/users/profile</span>
+              </h3>
+            </div>
           </div>
         </div>
       </div>

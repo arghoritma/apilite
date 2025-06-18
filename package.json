@@ -5,11 +5,12 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --exec ts-node src/index.ts",
-    "build": "tsc",
+    "build": "node scripts/build.js",
     "start": "node dist/server.js",
     "migrate": "cd src && knex migrate:latest",
     "migrate:rollback": "knex migrate:rollback",
-    "seed": "knex seed:run"
+    "seed": "knex seed:run",
+    "postbuild": "echo 'Build completed with public folder copied'"
   },
   "keywords": [],
   "author": "",
@@ -37,6 +38,7 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "fs-extra": "^11.3.0",
     "nodemon": "^3.1.10"
   }
 }
