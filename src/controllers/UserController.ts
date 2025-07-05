@@ -1,6 +1,6 @@
 import { Request, Response } from 'ultimate-express';
 import { hashPassword, verifyPassword } from '../utils/hash';
-import { db } from '../config/database';
+import db from '../config/database';
 import { v4 as uuid } from 'uuid';
 import { AuthService } from '../services/auth';
 import { SessionService } from '../services/session';

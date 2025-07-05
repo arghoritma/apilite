@@ -2,7 +2,7 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/
 import { hashToken, verifyTokenHash } from '../utils/hash';
 import redis from './redis';
 import { SessionService, CreateSessionData } from './session';
-import { db } from '../config/database';
+import db from '../config/database';
 
 export interface LoginResult {
   accessToken: string;
@@ -25,11 +25,11 @@ export interface RefreshResult {
 }
 
 export class AuthService {
-  constructor(private sessionService: SessionService) {}
+  constructor(private sessionService: SessionService) { }
 
   async login(user: any, userAgent: string, ip: string, deviceId?: string): Promise<LoginResult> {
     const finalDeviceId = deviceId || crypto.randomUUID();
-    
+
     // Buat session baru
     const sessionData: CreateSessionData = {
       userId: user.id,
@@ -48,8 +48,8 @@ export class AuthService {
     // Hash dan simpan refresh token
     const hashedRefreshToken = await hashToken(refreshToken);
     await this.sessionService.saveRefreshToken(
-      session.id, 
-      hashedRefreshToken, 
+      session.id,
+      hashedRefreshToken,
       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     );
 
@@ -174,12 +174,12 @@ export class AuthService {
         const sessionData = JSON.parse(cachedSession);
         await redis.srem(`user_sessions:${sessionData.userId}`, sessionId);
       }
-      
+
       await redis.del(`session:${sessionId}`);
     } catch (redisError) {
       console.error('Redis error during logout:', redisError);
     }
-    
+
     // Deactivate session di database
     await this.sessionService.deactivateSession(sessionId);
   }
@@ -188,7 +188,7 @@ export class AuthService {
     try {
       // Hapus semua session dari cache
       const sessionIds = await redis.smembers(`user_sessions:${userId}`);
-      
+
       if (sessionIds.length > 0) {
         const pipeline = redis.pipeline();
         sessionIds.forEach(sessionId => {
@@ -200,7 +200,7 @@ export class AuthService {
     } catch (redisError) {
       console.error('Redis error during logout all:', redisError);
     }
-    
+
     // Deactivate semua session di database
     await this.sessionService.deactivateAllUserSessions(userId);
   }
@@ -221,7 +221,7 @@ export class AuthService {
     try {
       // Coba ambil dari Redis cache terlebih dahulu
       const sessionIds = await redis.smembers(`user_sessions:${userId}`);
-      
+
       for (const sessionId of sessionIds) {
         const sessionData = await this.getSessionFromCache(sessionId);
         if (sessionData) {
@@ -232,7 +232,7 @@ export class AuthService {
       // Jika tidak ada di cache, ambil dari database
       if (sessions.length === 0) {
         const dbSessions = await this.sessionService.getUserSessions(userId);
-        
+
         for (const dbSession of dbSessions) {
           // Get user data
           const user = await db('users')
@@ -274,11 +274,11 @@ export class AuthService {
       }
     } catch (error) {
       console.error('Error getting user sessions:', error);
-      
+
       // Fallback ke database jika Redis error
       try {
         const dbSessions = await this.sessionService.getUserSessions(userId);
-        
+
         for (const dbSession of dbSessions) {
           const user = await db('users')
             .where('id', userId)

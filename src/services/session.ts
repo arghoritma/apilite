@@ -1,4 +1,4 @@
-import { db } from '../config/database'
+import db from '../config/database'
 import { v4 as uuid } from 'uuid'
 
 export interface CreateSessionData {
