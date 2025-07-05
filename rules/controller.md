@@ -1,3 +1,6 @@
+🤖 AI RULES: Routes Development Guidelines
+
+
 # MANDATORY RULES FOR CREATING CONTROLLERS:
 
 1. **ALWAYS USE STATIC METHODS**
