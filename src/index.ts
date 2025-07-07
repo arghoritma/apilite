@@ -2,7 +2,7 @@ import express from "ultimate-express";
 import dotenv from "dotenv";
 import Routers from "./routes";
 import { checkDatabaseConnection } from "./config/database";
-import { checkRedisConnection } from "./services/redis";
+import { RedisService } from "./services/redis";
 
 // Load environment variables
 dotenv.config();
@@ -20,8 +20,10 @@ app.use("/api", Routers);
 app.use(express.static("public"));
 // Test Redis connection
 
+const redisService = new RedisService();
+
 (async () => {
-  await checkRedisConnection();
+  await redisService.checkConnection();
   await checkDatabaseConnection()
 })();
 

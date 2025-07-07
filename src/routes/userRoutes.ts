@@ -10,9 +10,9 @@ router.post('/login', UserController.login);
 router.post('/refresh-token', UserController.refreshToken);
 
 // Protected routes
-router.get('/profile', authMiddleware as any, UserController.getProfile as any);
-router.get('/sessions', authMiddleware as any, UserController.getSessions as any);
-router.post('/logout', authMiddleware as any, UserController.logout as any);
-router.post('/logout-all', authMiddleware as any, UserController.logoutAllDevices as any);
+router.get('/profile', authMiddleware, UserController.getProfile);
+router.get('/sessions', authMiddleware, UserController.getSessions);
+router.post('/logout', authMiddleware, UserController.logout);
+router.post('/logout-all', authMiddleware, UserController.logoutAllDevices);
 
 export default router;

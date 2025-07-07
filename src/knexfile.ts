@@ -17,7 +17,13 @@ const config: { [key: string]: Knex.Config } = {
     },
     pool: {
       min: 2,
-      max: 10
+      max: 50,              // Tingkatkan dari default (biasanya 10)
+      createTimeoutMillis: 3000,
+      acquireTimeoutMillis: 60000,  // Tingkatkan timeout
+      idleTimeoutMillis: 30000,
+      reapIntervalMillis: 1000,
+      createRetryIntervalMillis: 100,
+      propagateCreateError: false
     }
   },
 
@@ -36,7 +42,13 @@ const config: { [key: string]: Knex.Config } = {
     },
     pool: {
       min: 2,
-      max: 10
+      max: 50,              // Tingkatkan dari default (biasanya 10)
+      createTimeoutMillis: 3000,
+      acquireTimeoutMillis: 60000,  // Tingkatkan timeout
+      idleTimeoutMillis: 30000,
+      reapIntervalMillis: 1000,
+      createRetryIntervalMillis: 100,
+      propagateCreateError: false
     }
   }
 };
