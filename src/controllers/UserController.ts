@@ -6,25 +6,59 @@ import { AuthService } from '../services/auth';
 import { SessionService } from '../services/session';
 import { AuthRequest } from '../middlewares/auth';
 
-export class UserController {
-  static async register(req: Request, res: Response) {
+interface RegisterRequest {
+  name: string;
+  email: string;
+  password: string;
+}
+
+interface LoginRequest {
+  email: string;
+  password: string;
+  deviceId?: string;
+}
+
+export default class UserController {
+
+  private static getAuthService() {
+    const sessionService = new SessionService();
+    return new AuthService(sessionService)
+  }
+
+  private static validateRegisterInput(body: any) {
+    const errors: string[] = []
+
+    if (!body.name?.trim()) errors.push('Name is required');
+    if (!body.email?.trim()) errors.push('Email is required');
+    if (!body.password) errors.push('Password is required');
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (body.email && !emailRegex.test(body.email)) {
+      errors.push('Invalid email format');
+    }
+
+    if (body.password && body.password.length < 6) {
+      errors.push('Password must be at least 6 characters long');
+    }
+
+    return errors;
+  }
+
+  static async register(req: Request<{}, {}, RegisterRequest>, res: Response) {
+
     try {
-      const { name, email, password } = req.body;
+      const validationErrors = this.validateRegisterInput(req.body)
 
-      // Validasi input
-      if (!name || !email || !password) {
+      if (validationErrors.length > 0) {
         return res.status(400).json({
           code: 'VALIDATION_ERROR',
-          message: 'Name, email, and password are required'
-        });
+          message: 'Validation failed',
+          errors: validationErrors
+        })
       }
 
-      if (password.length < 6) {
-        return res.status(400).json({
-          code: 'VALIDATION_ERROR',
-          message: 'Password must be at least 6 characters long'
-        });
-      }
+      const { name, email, password } = req.body
 
       // Check if user already exists
       const existingUser = await db('users').where({ email }).first();
@@ -71,7 +105,7 @@ export class UserController {
     }
   }
 
-  static async login(req: Request, res: Response) {
+  static async login(req: Request<{}, {}, LoginRequest>, res: Response) {
     try {
       const { email, password, deviceId } = req.body;
 
@@ -102,8 +136,8 @@ export class UserController {
       }
 
       // Login menggunakan AuthService
-      const sessionService = new SessionService();
-      const authService = new AuthService(sessionService);
+
+      const authService = this.getAuthService()
 
       const userAgent = req.headers['user-agent'] || 'unknown';
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
@@ -141,8 +175,7 @@ export class UserController {
         });
       }
 
-      const sessionService = new SessionService();
-      const authService = new AuthService(sessionService);
+      const authService = this.getAuthService()
 
       const result = await authService.refreshAccessToken(refreshToken);
 
@@ -176,8 +209,7 @@ export class UserController {
         });
       }
 
-      const sessionService = new SessionService();
-      const authService = new AuthService(sessionService);
+      const authService = this.getAuthService()
 
       await authService.logout(sessionId);
 
@@ -206,8 +238,7 @@ export class UserController {
         });
       }
 
-      const sessionService = new SessionService();
-      const authService = new AuthService(sessionService);
+      const authService = this.getAuthService()
 
       await authService.logoutAllDevices(userId);
 

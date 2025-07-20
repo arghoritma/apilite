@@ -5,7 +5,7 @@ import MigrateLatest from "../commands/migrate-latest";
 
 dotenv.config();
 
-const db = knex(config[process.env.NODE_ENV || 'development']);
+const db = knex(config[process.env.NODE_ENV!]);
 
 const checkDatabaseConnection = async () => {
   try {

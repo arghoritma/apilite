@@ -14,11 +14,21 @@ async function build() {
     // Always ensure dist exists after removal
     await fs.ensureDir("dist");
 
-    // Copy .env from root to dist
+    // Copy .env from root to dist and set NODE_ENV to production
     const rootEnvPath = path.join(".env");
     const rootEnvExists = await fs.pathExists(rootEnvPath);
     if (rootEnvExists) {
-      await fs.copy(rootEnvPath, envPath, { overwrite: true });
+      let envContent = await fs.readFile(rootEnvPath, "utf8");
+      // Replace or add NODE_ENV
+      if (envContent.includes("NODE_ENV=")) {
+        envContent = envContent.replace(/NODE_ENV=.*$/m, "NODE_ENV=production");
+      } else {
+        envContent += "\nNODE_ENV=production";
+      }
+      await fs.writeFile(envPath, envContent);
+    } else {
+      // If no .env exists, create one with NODE_ENV=production
+      await fs.writeFile(envPath, "NODE_ENV=production");
     }
 
     console.log("🔨 Compiling TypeScript...");
