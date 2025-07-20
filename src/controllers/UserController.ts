@@ -1,10 +1,10 @@
-import { Request, Response } from 'ultimate-express';
-import { hashPassword, verifyPassword } from '../utils/hash';
-import db from '../config/database';
-import { v4 as uuid } from 'uuid';
-import { AuthService } from '../services/auth';
-import { SessionService } from '../services/session';
-import { AuthRequest } from '../middlewares/auth';
+import { Request, Response } from "ultimate-express";
+import { hashPassword, verifyPassword } from "../utils/hash";
+import db from "../config/database";
+import { v4 as uuid } from "uuid";
+import { AuthService } from "../services/auth";
+import { SessionService } from "../services/session";
+import { AuthRequest } from "../middlewares/auth";
 
 interface RegisterRequest {
   name: string;
@@ -19,53 +19,26 @@ interface LoginRequest {
 }
 
 export default class UserController {
+  private static authServiceInstance: AuthService | null = null;
 
-  private static getAuthService() {
-    const sessionService = new SessionService();
-    return new AuthService(sessionService)
-  }
-
-  private static validateRegisterInput(body: any) {
-    const errors: string[] = []
-
-    if (!body.name?.trim()) errors.push('Name is required');
-    if (!body.email?.trim()) errors.push('Email is required');
-    if (!body.password) errors.push('Password is required');
-
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (body.email && !emailRegex.test(body.email)) {
-      errors.push('Invalid email format');
+  private static getAuthService(): AuthService {
+    if (!UserController.authServiceInstance) {
+      const sessionService = new SessionService()
+      UserController.authServiceInstance = new AuthService(sessionService)
     }
-
-    if (body.password && body.password.length < 6) {
-      errors.push('Password must be at least 6 characters long');
-    }
-
-    return errors;
+    return UserController.authServiceInstance
   }
 
   static async register(req: Request<{}, {}, RegisterRequest>, res: Response) {
-
     try {
-      const validationErrors = this.validateRegisterInput(req.body)
-
-      if (validationErrors.length > 0) {
-        return res.status(400).json({
-          code: 'VALIDATION_ERROR',
-          message: 'Validation failed',
-          errors: validationErrors
-        })
-      }
-
-      const { name, email, password } = req.body
+      const { name, email, password } = req.body;
 
       // Check if user already exists
-      const existingUser = await db('users').where({ email }).first();
+      const existingUser = await db("users").where({ email }).first();
       if (existingUser) {
         return res.status(400).json({
-          code: 'USER_EXISTS',
-          message: 'User with this email already exists'
+          code: "USER_EXISTS",
+          message: "User with this email already exists",
         });
       }
 
@@ -74,33 +47,35 @@ export default class UserController {
       const userId = uuid();
 
       // Create user
-      const [user] = await db('users').insert({
-        id: userId,
-        name,
-        email,
-        password: hashedPassword,
-        created_at: new Date(),
-        updated_at: new Date()
-      }).returning(['id', 'name', 'email', 'created_at']);
+      const [user] = await db("users")
+        .insert({
+          id: userId,
+          name,
+          email,
+          password: hashedPassword,
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .returning(["id", "name", "email", "created_at"]);
 
       res.status(201).json({
-        code: 'REGISTER_SUCCESS',
-        message: 'User registered successfully',
+        code: "REGISTER_SUCCESS",
+        message: "User registered successfully",
         data: {
           user: {
             id: user.id,
             name: user.name,
             email: user.email,
-            createdAt: user.created_at
-          }
-        }
+            createdAt: user.created_at,
+          },
+        },
       });
     } catch (error) {
-      console.error('Register error:', error);
+      console.error("Register error:", error);
       res.status(500).json({
-        code: 'REGISTER_ERROR',
-        message: 'Error registering user',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        code: "REGISTER_ERROR",
+        message: "Error registering user",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -109,20 +84,12 @@ export default class UserController {
     try {
       const { email, password, deviceId } = req.body;
 
-      // Validasi input
-      if (!email || !password) {
-        return res.status(400).json({
-          code: 'VALIDATION_ERROR',
-          message: 'Email and password are required'
-        });
-      }
-
       // Find user
-      const user = await db('users').where({ email }).first();
+      const user = await db("users").where({ email }).first();
       if (!user) {
         return res.status(401).json({
-          code: 'INVALID_CREDENTIALS',
-          message: 'Invalid email or password'
+          code: "INVALID_CREDENTIALS",
+          message: "Invalid email or password",
         });
       }
 
@@ -130,36 +97,41 @@ export default class UserController {
       const validPassword = await verifyPassword(password, user.password);
       if (!validPassword) {
         return res.status(401).json({
-          code: 'INVALID_CREDENTIALS',
-          message: 'Invalid email or password'
+          code: "INVALID_CREDENTIALS",
+          message: "Invalid email or password",
         });
       }
 
       // Login menggunakan AuthService
 
-      const authService = this.getAuthService()
+      const authService = UserController.getAuthService();
 
-      const userAgent = req.headers['user-agent'] || 'unknown';
-      const ip = req.ip || req.connection.remoteAddress || 'unknown';
+      const userAgent = req.headers["user-agent"] || "unknown";
+      const ip = req.ip || req.connection.remoteAddress || "unknown";
 
-      const loginResult = await authService.login(user, userAgent, ip, deviceId);
+      const loginResult = await authService.login(
+        user,
+        userAgent,
+        ip,
+        deviceId
+      );
 
       res.json({
-        code: 'LOGIN_SUCCESS',
-        message: 'Login successful',
+        code: "LOGIN_SUCCESS",
+        message: "Login successful",
         data: {
           accessToken: loginResult.accessToken,
           refreshToken: loginResult.refreshToken,
           user: loginResult.user,
-          session: loginResult.session
-        }
+          session: loginResult.session,
+        },
       });
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       res.status(500).json({
-        code: 'LOGIN_ERROR',
-        message: 'Error during login',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        code: "LOGIN_ERROR",
+        message: "Error during login",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -170,30 +142,29 @@ export default class UserController {
 
       if (!refreshToken) {
         return res.status(400).json({
-          code: 'VALIDATION_ERROR',
-          message: 'Refresh token is required'
+          code: "VALIDATION_ERROR",
+          message: "Refresh token is required",
         });
       }
 
-      const authService = this.getAuthService()
+      const authService = UserController.getAuthService();
 
       const result = await authService.refreshAccessToken(refreshToken);
 
       res.json({
-        code: 'REFRESH_SUCCESS',
-        message: 'Token refreshed successfully',
+        code: "REFRESH_SUCCESS",
+        message: "Token refreshed successfully",
         data: {
           accessToken: result.accessToken,
-          refreshToken: result.refreshToken
-        }
+          refreshToken: result.refreshToken,
+        },
       });
-
     } catch (error) {
-      console.error('Refresh token error:', error);
+      console.error("Refresh token error:", error);
       res.status(401).json({
-        code: 'REFRESH_ERROR',
-        message: 'Failed to refresh token',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        code: "REFRESH_ERROR",
+        message: "Failed to refresh token",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -204,25 +175,25 @@ export default class UserController {
 
       if (!sessionId) {
         return res.status(401).json({
-          code: 'UNAUTHORIZED',
-          message: 'No active session found'
+          code: "UNAUTHORIZED",
+          message: "No active session found",
         });
       }
 
-      const authService = this.getAuthService()
+      const authService = UserController.getAuthService();
 
       await authService.logout(sessionId);
 
       res.json({
-        code: 'LOGOUT_SUCCESS',
-        message: 'Logout successful'
+        code: "LOGOUT_SUCCESS",
+        message: "Logout successful",
       });
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
       res.status(500).json({
-        code: 'LOGOUT_ERROR',
-        message: 'Error during logout',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        code: "LOGOUT_ERROR",
+        message: "Error during logout",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -233,25 +204,25 @@ export default class UserController {
 
       if (!userId) {
         return res.status(401).json({
-          code: 'UNAUTHORIZED',
-          message: 'User not authenticated'
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
         });
       }
 
-      const authService = this.getAuthService()
+      const authService = UserController.getAuthService();
 
       await authService.logoutAllDevices(userId);
 
       res.json({
-        code: 'LOGOUT_ALL_SUCCESS',
-        message: 'Logged out from all devices successfully'
+        code: "LOGOUT_ALL_SUCCESS",
+        message: "Logged out from all devices successfully",
       });
     } catch (error) {
-      console.error('Logout all devices error:', error);
+      console.error("Logout all devices error:", error);
       res.status(500).json({
-        code: 'LOGOUT_ALL_ERROR',
-        message: 'Error logging out from all devices',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        code: "LOGOUT_ALL_ERROR",
+        message: "Error logging out from all devices",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -262,36 +233,36 @@ export default class UserController {
 
       if (!userId) {
         return res.status(401).json({
-          code: 'UNAUTHORIZED',
-          message: 'User not authenticated'
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
         });
       }
 
-      const user = await db('users')
+      const user = await db("users")
         .where({ id: userId })
-        .select('id', 'name', 'email', 'created_at', 'updated_at')
+        .select("id", "name", "email", "created_at", "updated_at")
         .first();
 
       if (!user) {
         return res.status(404).json({
-          code: 'USER_NOT_FOUND',
-          message: 'User not found'
+          code: "USER_NOT_FOUND",
+          message: "User not found",
         });
       }
 
       res.json({
-        code: 'SUCCESS',
-        message: 'Profile retrieved successfully',
+        code: "SUCCESS",
+        message: "Profile retrieved successfully",
         data: {
-          user
-        }
+          user,
+        },
       });
     } catch (error) {
-      console.error('Get profile error:', error);
+      console.error("Get profile error:", error);
       res.status(500).json({
-        code: 'PROFILE_ERROR',
-        message: 'Error fetching profile',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        code: "PROFILE_ERROR",
+        message: "Error fetching profile",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -302,36 +273,35 @@ export default class UserController {
 
       if (!userId) {
         return res.status(401).json({
-          code: 'UNAUTHORIZED',
-          message: 'User not authenticated'
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
         });
       }
 
-      const sessionService = new SessionService();
-      const authService = new AuthService(sessionService);
+      const authService = UserController.getAuthService();
 
       const sessions = await authService.getUserActiveSessions(userId);
 
       res.json({
-        code: 'SUCCESS',
-        message: 'Sessions retrieved successfully',
+        code: "SUCCESS",
+        message: "Sessions retrieved successfully",
         data: {
-          sessions: sessions.map(session => ({
+          sessions: sessions.map((session) => ({
             sessionId: session.sessionId,
             deviceId: session.deviceId,
             userAgent: session.userAgent,
             ip: session.ip,
             createdAt: session.createdAt,
-            expiredAt: session.expiredAt
-          }))
-        }
+            expiredAt: session.expiredAt,
+          })),
+        },
       });
     } catch (error) {
-      console.error('Get sessions error:', error);
+      console.error("Get sessions error:", error);
       res.status(500).json({
-        code: 'SESSIONS_ERROR',
-        message: 'Error fetching sessions',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        code: "SESSIONS_ERROR",
+        message: "Error fetching sessions",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }

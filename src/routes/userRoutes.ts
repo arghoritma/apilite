@@ -1,12 +1,13 @@
 import { Router } from 'ultimate-express';
 import UserController from '../controllers/UserController';
 import { authMiddleware } from '../middlewares/auth';
+import { validateInput } from '../middlewares/validation';
+import { userValidation } from '../middlewares/validations/userValidation';
 
 const router = Router();
-
 // Public routes
-router.post('/register', UserController.register);
-router.post('/login', UserController.login);
+router.post('/register', validateInput(userValidation.register), UserController.register);
+router.post('/login', validateInput(userValidation.login), UserController.login);
 router.post('/refresh-token', UserController.refreshToken);
 
 // Protected routes
