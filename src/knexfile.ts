@@ -5,7 +5,7 @@ const config: { [key: string]: Knex.Config } = {
   development: {
     client: 'better-sqlite3',
     connection: {
-      filename: path.join(__dirname, '../db/dev.sqlite')
+      filename: path.join(__dirname, '../db/dev.sqlite3')
     },
     useNullAsDefault: true,
     migrations: {
@@ -17,7 +17,7 @@ const config: { [key: string]: Knex.Config } = {
   production: {
     client: 'better-sqlite3',
     connection: {
-      filename: path.join(__dirname, '../../db/prod.sqlite')
+      filename: path.join(__dirname, '../../db/prod.sqlite3')
     },
     useNullAsDefault: true,
     migrations: {
