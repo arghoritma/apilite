@@ -1,16 +1,45 @@
 # Express TypeScript Template
 
-Template backend RESTful API menggunakan ultimate-express dan TypeScript dengan fitur autentikasi dan manajemen database.
+Template backend RESTful API menggunakan ultimate-express dan TypeScript dengan fitur autentikasi dan manajemen database dan websocket.
 
 ## Teknologi yang Digunakan
 
-- **Ultimate Express** - Framework web untuk Node.js
+- **Ultimate Express** - Framework web untuk Node.js, sangat cepat (berbasis µWebSockets)
 - **TypeScript** - JavaScript dengan penambahan tipe data
 - **SQLite3** - Database SQL ringan
 - **Knex.js** - SQL query builder dan migration tool
 - **JWT** - JSON Web Token untuk autentikasi
 - **Bcrypt** - Untuk hashing password
 - **Nodemon** - Development server dengan auto-reload
+
+### Benchmark Ultimate Express
+
+| Test                                       | Express req/sec | Ultimate Express req/sec |
+| ------------------------------------------ | --------------- | ------------------------ |
+| routing/simple-routes (/)                  | 11.16k          | 75.14k                   |
+| routing/lot-of-routes (/999)               | 4.63k           | 54.57k                   |
+| routing/some-middlewares (/90)             | 10.12k          | 61.92k                   |
+| routers/nested-routers (/abccc/nested/ddd) | 10.18k          | 51.15k                   |
+| static file (/static/index.js)             | 6.58k           | 32.45k                   |
+| ejs engine (/test)                         | 5.50k           | 40.82k                   |
+| body-urlencoded (/abc)                     | 8.07k           | 50.52k                   |
+| compression-file (/small-file)             | 4.81k           | 14.92k                   |
+
+> Ultimate Express rata-rata 5-10x lebih cepat dari Express.js pada berbagai skenario routing dan middleware.
+
+### Perbandingan Kecepatan Ultimate Express dengan Framework Lain
+
+| Framework          | Req/sec (64) | Req/sec (256) | Req/sec (512) |
+| ------------------ | ------------ | ------------- | ------------- |
+| ultimate-express   | 167,079      | 183,107       | 184,765       |
+| uwebsockets        | 152,524      | 173,217       | 176,365       |
+| elysia             | 150,267      | 167,667       | 167,665       |
+| sifrr              | 150,016      | 168,058       | 172,702       |
+| mesh               | 143,917      | 159,453       | 166,114       |
+| routejs-uwebsocket | 137,966      | 149,189       | 155,895       |
+| hyper-express      | 131,791      | 144,777       | 147,443       |
+
+> Sumber: TechEmpower / FrameworkBenchmarks. Ultimate Express menempati posisi teratas untuk framework Node.js/JavaScript tercepat dalam benchmark ini.
 
 ## Fitur
 
