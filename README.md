@@ -128,7 +128,7 @@ npm run seed
 
   ```json
   {
-    "username": "string",
+    "name": "string",
     "email": "string",
     "password": "string"
   }
