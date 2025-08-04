@@ -6,7 +6,7 @@ Template backend RESTful API menggunakan ultimate-express dan TypeScript dengan 
 
 - **Ultimate Express** - Framework web untuk Node.js, sangat cepat (berbasis µWebSockets)
 - **TypeScript** - JavaScript dengan penambahan tipe data
-- **SQLite3** - Database SQL ringan
+- **SQLite3** - Database SQL ringan (Bisa di ganti dengan DBMS lain [MySQL, Postgres, dll])
 - **Knex.js** - SQL query builder dan migration tool
 - **JWT** - JSON Web Token untuk autentikasi
 - **Bcrypt** - Untuk hashing password
