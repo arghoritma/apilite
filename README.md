@@ -21,6 +21,34 @@ Template backend RESTful API menggunakan ultimate-express dan TypeScript dengan 
 - JWT middleware untuk proteksi route
 - Development server dengan hot-reload
 - Konfigurasi database yang fleksibel
+- **WebSocket realtime** (broadcast ke semua client, contoh client disediakan)
+
+## WebSocket
+
+Fitur WebSocket menggunakan [ultimate-ws](https://www.npmjs.com/package/ultimate-ws) dan sudah terintegrasi dengan ultimate-express.
+
+- Endpoint WebSocket: `ws://localhost:3000/ws`
+- Endpoint HTTP broadcast: `POST /api/ws/broadcast`
+
+### Contoh Client WebSocket
+
+Buka file `public/ws-client.html` di browser, klik "Connect WebSocket" lalu klik "Send Test Broadcast" untuk mengirim pesan ke semua client yang terhubung.
+
+### Contoh Broadcast via HTTP
+
+Request:
+
+```http
+POST /api/ws/broadcast
+Content-Type: application/json
+
+{
+  "type": "test",
+  "payload": { "msg": "Hello from HTTP!" }
+}
+```
+
+Semua client yang terhubung ke WebSocket akan menerima pesan broadcast ini.
 
 ## Struktur Proyek
 
