@@ -24,7 +24,7 @@ const config: { [key: string]: Knex.Config } = {
       directory: path.join(__dirname, 'database/migrations'),
       tableName: 'knex_migrations'
     },
-  }
+  },
 };
 
 export default config;
