@@ -39,7 +39,7 @@ Template backend RESTful API menggunakan ultimate-express dan TypeScript dengan 
 | routejs-uwebsocket | 137,966      | 149,189       | 155,895       |
 | hyper-express      | 131,791      | 144,777       | 147,443       |
 
-> Sumber: TechEmpower / FrameworkBenchmarks. Ultimate Express menempati posisi teratas untuk framework Node.js/JavaScript tercepat dalam benchmark ini.
+> Sumber: [Web Frameworks Benchmark](https://web-frameworks-benchmark.netlify.app/result?l=javascript) & TechEmpower. Ultimate Express menempati posisi teratas untuk framework Node.js/JavaScript tercepat dalam benchmark ini.
 
 ## Fitur
 
