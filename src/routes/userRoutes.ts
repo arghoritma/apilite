@@ -13,7 +13,7 @@ router.post('/refresh-token', UserController.refreshToken);
 // Protected routes
 router.get('/profile', authMiddleware, UserController.getProfile);
 router.get('/sessions', authMiddleware, UserController.getSessions);
-router.post('/logout', authMiddleware, UserController.logout);
-router.post('/logout-all', authMiddleware, UserController.logoutAllDevices);
+router.get('/logout', authMiddleware, UserController.logout);
+router.get('/logout-all', authMiddleware, UserController.logoutAllDevices);
 
 export default router;

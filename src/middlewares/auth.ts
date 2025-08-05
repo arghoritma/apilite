@@ -40,6 +40,7 @@ export const authMiddleware = async (
     const decoded = verifyAccessToken(token);
     const { userId, sessionId, deviceId } = decoded;
 
+
     // Cek session di cache terlebih dahulu
     const cachedSession = await authService.getSessionFromCache(sessionId);
 
@@ -108,7 +109,6 @@ export const authMiddleware = async (
 
     next();
   } catch (error: any) {
-    console.error('Auth middleware error:', error);
     res.status(401).json({
       code: 'AUTH_ERROR',
       message: "Invalid or expired token",

@@ -171,9 +171,24 @@ npm run seed
   }
   ```
 
+  - `POST /api/users/logout` - Logout dari device saat ini (memerlukan autentikasi)
+
+  - `POST /api/users/logout-all` - Logout dari semua device (memerlukan autentikasi)
+
 ### Pengguna
 
 - `GET /api/users/profile` - Mendapatkan profil pengguna (memerlukan autentikasi)
+
+> Untuk mengakses protected route ini, Anda harus menggunakan access token yang didapatkan saat login dan memasukkannya ke dalam header autentikasi Bearer.
+
+Contoh penggunaan dengan curl:
+
+```bash
+curl -H "Authorization: Bearer <access_token_anda>" http://localhost:3000/api/users/profile
+```
+
+
+
 
 ## Validasi
 
