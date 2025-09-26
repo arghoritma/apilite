@@ -25,6 +25,7 @@ app.use(express.static("public"));
 const redisService = new RedisService();
 
 (async () => {
+
   await redisService.checkConnection();
   await checkDatabaseConnection()
 })();

@@ -69,7 +69,7 @@ export class AuthService {
       expiredAt: session.expired_at
     };
 
-    try {
+    if (await this.redis.isReallyAvailable()) {
       await this.redis.set(
         `session:${session.id}`,
         JSON.stringify(cacheData),
@@ -80,9 +80,11 @@ export class AuthService {
       const client = this.redis.getClient();
       await client.sadd(`user_sessions:${user.id}`, session.id);
       await client.expire(`user_sessions:${user.id}`, 60 * 60 * 24 * 30);
-    } catch (redisError) {
-      console.error('Redis cache error during login:', redisError);
+      console.log('⚡ Session cached in Redis');
+    } else {
+      console.warn('⚠️ Redis not available, skipping session caching');
     }
+
 
     return {
       accessToken,
@@ -160,15 +162,19 @@ export class AuthService {
 
   async logout(sessionId: string): Promise<void> {
     try {
-      const cachedSession = await this.redis.get(`session:${sessionId}`);
-      if (cachedSession) {
-        const sessionData = JSON.parse(cachedSession);
-        await this.redis.getClient().srem(`user_sessions:${sessionData.userId}`, sessionId);
-      }
+      if (this.redis.isAvailable()) {
+        const cachedSession = await this.redis.get(`session:${sessionId}`);
+        if (cachedSession) {
+          const sessionData = JSON.parse(cachedSession);
+          await this.redis.getClient().srem(`user_sessions:${sessionData.userId}`, sessionId);
+        }
 
-      await this.redis.getClient().del(`session:${sessionId}`);
+        await this.redis.getClient().del(`session:${sessionId}`);
+      } else {
+        throw new Error('Redis not available');
+      }
     } catch (redisError) {
-      console.error('Redis error during logout:', redisError);
+      console.warn('⚠️ Redis not available - proceeding with DB logout');
     }
 
     await this.sessionService.deactivateSession(sessionId);
@@ -176,19 +182,23 @@ export class AuthService {
 
   async logoutAllDevices(userId: string): Promise<void> {
     try {
-      const client = this.redis.getClient();
-      const sessionIds = await client.smembers(`user_sessions:${userId}`);
+      if (this.redis.isAvailable()) {
+        const client = this.redis.getClient();
+        const sessionIds = await client.smembers(`user_sessions:${userId}`);
 
-      if (sessionIds.length > 0) {
-        const pipeline = client.pipeline();
-        sessionIds.forEach(sessionId => {
-          pipeline.del(`session:${sessionId}`);
-        });
-        pipeline.del(`user_sessions:${userId}`);
-        await pipeline.exec();
+        if (sessionIds.length > 0) {
+          const pipeline = client.pipeline();
+          sessionIds.forEach(sessionId => {
+            pipeline.del(`session:${sessionId}`);
+          });
+          pipeline.del(`user_sessions:${userId}`);
+          await pipeline.exec();
+        }
+      } else {
+        throw new Error('Redis not available');
       }
     } catch (redisError) {
-      console.error('Redis error during logout all:', redisError);
+      console.warn('⚠️ Redis not available - proceeding with DB logout');
     }
 
     await this.sessionService.deactivateAllUserSessions(userId);
@@ -208,59 +218,66 @@ export class AuthService {
     const sessions = [];
 
     try {
-      const client = this.redis.getClient();
-      const sessionIds = await client.smembers(`user_sessions:${userId}`);
+      if (await this.redis.isReallyAvailable()) {
+        const client = this.redis.getClient();
+        const sessionIds = await client.smembers(`user_sessions:${userId}`);
 
-      for (const sessionId of sessionIds) {
-        const sessionData = await this.getSessionFromCache(sessionId);
-        if (sessionData) {
-          sessions.push(sessionData);
-        }
-      }
+        console.log(`⚡ Found ${sessionIds.length} sessions in Redis for user ${userId}`);
 
-      if (sessions.length === 0) {
-        const dbSessions = await this.sessionService.getUserSessions(userId);
-
-        for (const dbSession of dbSessions) {
-          const user = await db('users')
-            .where('id', userId)
-            .select('id', 'name', 'email')
-            .first();
-
-          if (user) {
-            const sessionData = {
-              sessionId: dbSession.id,
-              userId: dbSession.user_id,
-              deviceId: dbSession.device_id,
-              user: {
-                id: user.id,
-                name: user.name,
-                email: user.email
-              },
-              userAgent: dbSession.user_agent,
-              ip: dbSession.ip_address,
-              createdAt: dbSession.created_at,
-              expiredAt: dbSession.expired_at
-            };
-
+        for (const sessionId of sessionIds) {
+          const sessionData = await this.getSessionFromCache(sessionId);
+          if (sessionData) {
             sessions.push(sessionData);
+          }
+        }
 
-            try {
-              await this.redis.set(
-                `session:${dbSession.id}`,
-                JSON.stringify(sessionData),
-                "EX",
-                60 * 60 * 24 * 30
-              );
-              await client.sadd(`user_sessions:${userId}`, dbSession.id);
-            } catch (redisError) {
-              console.error('Redis cache error:', redisError);
+        if (sessions.length === 0) {
+          const dbSessions = await this.sessionService.getUserSessions(userId);
+
+          for (const dbSession of dbSessions) {
+            const user = await db('users')
+              .where('id', userId)
+              .select('id', 'name', 'email')
+              .first();
+
+            if (user) {
+              const sessionData = {
+                sessionId: dbSession.id,
+                userId: dbSession.user_id,
+                deviceId: dbSession.device_id,
+                user: {
+                  id: user.id,
+                  name: user.name,
+                  email: user.email
+                },
+                userAgent: dbSession.user_agent,
+                ip: dbSession.ip_address,
+                createdAt: dbSession.created_at,
+                expiredAt: dbSession.expired_at
+              };
+
+              sessions.push(sessionData);
+
+              try {
+                await this.redis.set(
+                  `session:${dbSession.id}`,
+                  JSON.stringify(sessionData),
+                  "EX",
+                  60 * 60 * 24 * 30
+                );
+                await client.sadd(`user_sessions:${userId}`, dbSession.id);
+              } catch (redisError) {
+                console.error('Redis cache error:', redisError);
+              }
             }
           }
         }
+      } else {
+        throw new Error('Redis not available');
       }
+
     } catch (error) {
-      console.error('Error getting user sessions:', error);
+      console.warn('⚠️ Redis not available - fetching sessions from DB');
 
       try {
         const dbSessions = await this.sessionService.getUserSessions(userId);

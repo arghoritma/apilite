@@ -1,3 +1,4 @@
+
 import Redis from 'ioredis';
 
 interface RedisConfig {
@@ -7,6 +8,7 @@ interface RedisConfig {
   maxRetriesPerRequest?: number;
   lazyConnect?: boolean;
   enableOfflineQueue?: boolean;
+
 }
 
 type ExpireMode = "EX"
@@ -30,13 +32,32 @@ export class RedisService {
   }
 
   private setupEventListeners(): void {
+    this.redis.on('connect', () => {
+      this.isRedisConnected = true;
+      console.log('✅ Redis connected');
+    });
+    this.redis.on('ready', () => {
+      this.isRedisConnected = true;
+      console.log('🟢 Redis ready');
+    });
     this.redis.on('error', (error) => {
+      // Jika error fatal, set isRedisConnected ke false
+      if (error && error.message && error.message.match(/ECONNREFUSED|Connection is closed/)) {
+        this.isRedisConnected = false;
+      }
       console.error('🔥 Redis connection error:', error);
     });
-
     this.redis.on('close', () => {
       this.isRedisConnected = false;
       console.log('❌ Redis connection closed');
+    });
+    this.redis.on('end', () => {
+      this.isRedisConnected = false;
+      console.log('🔴 Redis connection ended');
+    });
+    this.redis.on('reconnecting', () => {
+      this.isRedisConnected = false;
+      console.log('🔄 Redis reconnecting...');
     });
   }
 
@@ -65,6 +86,9 @@ export class RedisService {
     }
   }
 
+
+
+  // isAvailable hanya mengandalkan event, bukan real-time ping. Jika ingin real-time, bisa gunakan ping atau get/set test.
   isAvailable(): boolean {
     return this.isRedisConnected;
   }
@@ -89,6 +113,26 @@ export class RedisService {
       return await this.redis.get(key);
     } catch (error) {
       throw new Error(`Failed to get Redis key: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Mengecek ketersediaan Redis secara real-time (ping/set-get test).
+   * Return true jika Redis benar-benar aktif.
+   */
+  async isReallyAvailable(): Promise<boolean> {
+    try {
+      // Gunakan ping jika didukung, fallback ke set/get test
+      if (typeof this.redis?.ping === 'function') {
+        const pong = await this.redis.ping();
+        return pong === 'PONG';
+      } else {
+        await this.redis.set('test_is_really_available', '1', 'EX', 2);
+        const val = await this.redis.get('test_is_really_available');
+        return val === '1';
+      }
+    } catch {
+      return false;
     }
   }
 }
