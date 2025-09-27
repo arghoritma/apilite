@@ -14,3 +14,18 @@ declare global {
     }
   }
 }
+
+export interface LoginResult {
+  accessToken: string;
+  refreshToken: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  session: {
+    id: string;
+    deviceId: string;
+    expiresAt: Date;
+  };
+}

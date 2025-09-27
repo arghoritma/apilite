@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 import Routers from "./routes";
 import { checkDatabaseConnection } from "./config/database";
 import { RedisService } from "./services/redis";
-import http from 'http';
 import { WebSocketService } from './services/websocket';
 
 // Load environment variables
@@ -26,7 +25,12 @@ const redisService = new RedisService();
 
 (async () => {
 
-  await redisService.checkConnection();
+  if (await redisService.isReallyAvailable()) {
+    console.log("⚡ Redis connected successfully");
+  } else {
+    console.warn("⚠️ Redis connection failed - continuing without Redis");
+  }
+
   await checkDatabaseConnection()
 })();
 

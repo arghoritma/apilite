@@ -3,21 +3,8 @@ import { hashToken, verifyTokenHash } from '../utils/hash';
 import { RedisService } from './redis';
 import { SessionService, CreateSessionData } from './session';
 import db from '../config/database';
+import { LoginResult } from '../types';
 
-export interface LoginResult {
-  accessToken: string;
-  refreshToken: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  session: {
-    id: string;
-    deviceId: string;
-    expiresAt: Date;
-  };
-}
 
 export interface RefreshResult {
   accessToken: string;
@@ -80,9 +67,9 @@ export class AuthService {
       const client = this.redis.getClient();
       await client.sadd(`user_sessions:${user.id}`, session.id);
       await client.expire(`user_sessions:${user.id}`, 60 * 60 * 24 * 30);
-      console.log('⚡ Session cached in Redis');
+      console.log('⚡ Session cached in Redis during login');
     } else {
-      console.warn('⚠️ Redis not available, skipping session caching');
+      console.warn('⚠️ Redis not available, skipping session caching during login');
     }
 
 
@@ -107,24 +94,28 @@ export class AuthService {
       const decoded = verifyRefreshToken(refreshToken);
       const { userId, sessionId, deviceId } = decoded;
 
-      let cachedSession = null;
-      try {
-        const cached = await this.redis.get(`session:${sessionId}`);
-        if (cached) {
-          cachedSession = JSON.parse(cached);
-        }
-      } catch (redisError) {
-        console.error('Redis error during refresh:', redisError);
-      }
-
-      const dbSession = await this.sessionService.getActiveSession(sessionId);
-      if (!dbSession) {
+      if (await this.redis.isReallyAvailable()) {
+        let cachedSession = null;
         try {
-          await this.redis.getClient().del(`session:${sessionId}`);
+          const cached = await this.redis.get(`session:${sessionId}`);
+          if (cached) {
+            cachedSession = JSON.parse(cached);
+          }
         } catch (redisError) {
-          console.error('Redis delete error:', redisError);
+          console.error('Redis error during refresh:', redisError);
         }
-        throw new Error('Session expired or invalid');
+
+        const dbSession = await this.sessionService.getActiveSession(sessionId);
+        if (!dbSession) {
+          try {
+            await this.redis.getClient().del(`session:${sessionId}`);
+          } catch (redisError) {
+            console.error('Redis delete error:', redisError);
+          }
+          throw new Error('Session expired or invalid');
+        }
+      } else {
+        console.warn('⚠️ Redis not available - skipping cache check during token refresh');
       }
 
       const storedTokenHash = await this.sessionService.getValidRefreshToken(sessionId);
@@ -162,7 +153,7 @@ export class AuthService {
 
   async logout(sessionId: string): Promise<void> {
     try {
-      if (this.redis.isAvailable()) {
+      if (await this.redis.isReallyAvailable()) {
         const cachedSession = await this.redis.get(`session:${sessionId}`);
         if (cachedSession) {
           const sessionData = JSON.parse(cachedSession);
@@ -182,7 +173,7 @@ export class AuthService {
 
   async logoutAllDevices(userId: string): Promise<void> {
     try {
-      if (this.redis.isAvailable()) {
+      if (await this.redis.isReallyAvailable()) {
         const client = this.redis.getClient();
         const sessionIds = await client.smembers(`user_sessions:${userId}`);
 

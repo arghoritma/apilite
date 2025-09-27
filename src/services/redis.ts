@@ -45,11 +45,11 @@ export class RedisService {
       if (error && error.message && error.message.match(/ECONNREFUSED|Connection is closed/)) {
         this.isRedisConnected = false;
       }
-      console.error('🔥 Redis connection error:', error);
+
     });
     this.redis.on('close', () => {
       this.isRedisConnected = false;
-      console.log('❌ Redis connection closed');
+
     });
     this.redis.on('end', () => {
       this.isRedisConnected = false;
@@ -57,7 +57,7 @@ export class RedisService {
     });
     this.redis.on('reconnecting', () => {
       this.isRedisConnected = false;
-      console.log('🔄 Redis reconnecting...');
+
     });
   }
 

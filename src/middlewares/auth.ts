@@ -112,7 +112,7 @@ export const authMiddleware = async (
         console.error('Redis error setting session:', error);
       }
     } else {
-      console.warn('⚠️ Redis not available - skipping cache update');
+      console.warn('⚠️ Redis not available - skipping cache update in middleware');
     }
 
     (req as AuthRequest).user = {
