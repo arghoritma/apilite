@@ -153,8 +153,9 @@ npm run seed
 
 ### Autentikasi
 
-- `POST /api/users/register` - Registrasi pengguna baru
+- `POST /api/auth/register` - Registrasi pengguna baru
 
+  Request:
   ```json
   {
     "name": "string",
@@ -162,18 +163,76 @@ npm run seed
     "password": "string"
   }
   ```
+  Response:
+  ```json
+  {
+    "code": "REGISTER_SUCCESS",
+    "message": "User registered successfully",
+    "data": {
+      "user": {
+        "id": "string",
+        "name": "string",
+        "email": "string",
+        "createdAt": "2024-06-10T12:00:00.000Z"
+      }
+    }
+  }
+  ```
 
-- `POST /api/users/login` - Login pengguna
+- `POST /api/auth/login` - Login pengguna
+
+  Request:
   ```json
   {
     "email": "string",
     "password": "string"
   }
   ```
+  Response:
+  ```json
+  {
+    "code": "LOGIN_SUCCESS",
+    "message": "Login successful",
+    "data": {
+      "accessToken": "string",
+      "refreshToken": "string",
+      "user": {
+        "id": "string",
+        "name": "string",
+        "email": "string",
+        "createdAt": "2024-06-10T12:00:00.000Z"
+      },
+      "session": {
+        "sessionId": "string",
+        "deviceId": "string",
+        "userAgent": "string",
+        "ip": "string",
+        "createdAt": "2024-06-10T12:00:00.000Z",
+        "expiredAt": "2024-06-11T12:00:00.000Z"
+      }
+    }
+  }
+  ```
 
-  - `POST /api/users/logout` - Logout dari device saat ini (memerlukan autentikasi)
+- `POST /api/auth/logout` - Logout dari device saat ini (memerlukan autentikasi)
 
-  - `POST /api/users/logout-all` - Logout dari semua device (memerlukan autentikasi)
+  Response:
+  ```json
+  {
+    "code": "LOGOUT_SUCCESS",
+    "message": "Logout successful"
+  }
+  ```
+
+- `POST /api/auth/logout-all` - Logout dari semua device (memerlukan autentikasi)
+
+  Response:
+  ```json
+  {
+    "code": "LOGOUT_ALL_SUCCESS",
+    "message": "Logged out from all devices successfully"
+  }
+  ```
 
 ### Pengguna
 
@@ -187,7 +246,29 @@ Contoh penggunaan dengan curl:
 curl -H "Authorization: Bearer <access_token_anda>" http://localhost:3000/api/users/profile
 ```
 
+### Refresh Token
 
+- `POST /api/auth/refresh-token` - Mendapatkan access token baru menggunakan refresh token
+
+  ```json
+  {
+    "refreshToken": "string"
+  }
+  ```
+
+  Response:
+  ```json
+  {
+    "code": "REFRESH_SUCCESS",
+    "message": "Token refreshed successfully",
+    "data": {
+      "accessToken": "string",
+      "refreshToken": "string"
+    }
+  }
+  ```
+
+> Kirim refresh token yang didapat saat login untuk memperoleh access token baru. Refresh token biasanya dikirim saat access token sudah kadaluarsa.
 
 
 ## Validasi
