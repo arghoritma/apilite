@@ -10,6 +10,7 @@
     "migrate": "cd src && knex migrate:latest",
     "migrate:rollback": "knex migrate:rollback",
     "seed": "knex seed:run",
+    "reset-git": "node scripts/reset-git.js",
     "postbuild": "echo 'Build completed with public folder copied'"
   },
   "keywords": [],

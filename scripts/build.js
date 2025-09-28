@@ -4,33 +4,6 @@ const path = require("path");
 
 async function build() {
   try {
-    console.log("🧹 Cleaning dist folder...");
-    // Check if dist/.env exists
-    const envPath = path.join("dist", ".env");
-    const envExists = await fs.pathExists(envPath);
-
-    await fs.remove("dist");
-
-    // Always ensure dist exists after removal
-    await fs.ensureDir("dist");
-
-    // Copy .env from root to dist and set NODE_ENV to production
-    const rootEnvPath = path.join(".env");
-    const rootEnvExists = await fs.pathExists(rootEnvPath);
-    if (rootEnvExists) {
-      let envContent = await fs.readFile(rootEnvPath, "utf8");
-      // Replace or add NODE_ENV
-      if (envContent.includes("NODE_ENV=")) {
-        envContent = envContent.replace(/NODE_ENV=.*$/m, "NODE_ENV=production");
-      } else {
-        envContent += "\nNODE_ENV=production";
-      }
-      await fs.writeFile(envPath, envContent);
-    } else {
-      // If no .env exists, create one with NODE_ENV=production
-      await fs.writeFile(envPath, "NODE_ENV=production");
-    }
-
     console.log("🔨 Compiling TypeScript...");
     await new Promise((resolve, reject) => {
       exec("tsc", (error, stdout, stderr) => {
