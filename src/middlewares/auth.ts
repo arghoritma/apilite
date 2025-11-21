@@ -3,7 +3,7 @@ import { verifyAccessToken } from "../utils/jwt";
 import { AuthService } from "../services/auth";
 import { SessionService } from "../services/session";
 import { RedisService } from "../services/redis";
-import db from "../config/database";
+import { db } from "../config/native-database";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -43,7 +43,6 @@ export const authMiddleware = async (
     const decoded = verifyAccessToken(token);
     const { userId, sessionId, deviceId } = decoded;
 
-
     // Cek session di cache terlebih dahulu
     let cachedSession = null;
 
@@ -64,7 +63,9 @@ export const authMiddleware = async (
     }
 
     // Jika tidak ada di cache, cek database
+
     const dbSession = await sessionService.getActiveSession(sessionId);
+
     if (!dbSession) {
       res.status(401).json({
         code: 'SESSION_EXPIRED',
@@ -74,10 +75,9 @@ export const authMiddleware = async (
     }
 
     // Get user data
-    const user = await db('users')
+    const [user] = db('users')
       .where('id', userId)
-      .select('id', 'name', 'email')
-      .first();
+      .select(['id', 'name', 'email'])
 
     if (!user) {
       res.status(401).json({
@@ -86,8 +86,6 @@ export const authMiddleware = async (
       });
       return;
     }
-
-
 
     if (await redisService.isReallyAvailable()) {
       // Update cache

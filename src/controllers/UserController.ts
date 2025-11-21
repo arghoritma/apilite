@@ -9,6 +9,8 @@ export default class UserController {
     try {
       const userId = req.user?.id;
 
+      console.log("Fetching profile for user ID:", userId);
+
       if (!userId) {
         return res.status(401).json({
           code: "UNAUTHORIZED",
@@ -18,7 +20,7 @@ export default class UserController {
 
       const user = await db("users")
         .where({ id: userId })
-        .select("id", "name", "email", "created_at", "updated_at")
+        .select(["id", "name", "email", "created_at", "updated_at"])
         .first();
 
       if (!user) {

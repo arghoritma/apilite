@@ -1,4 +1,4 @@
-import db from '../config/database'
+import { db } from '../config/native-database'
 import { v4 as uuid } from 'uuid'
 
 export interface CreateSessionData {
@@ -22,86 +22,98 @@ export interface SessionData {
 }
 
 export class SessionService {
+
   async createSession(data: CreateSessionData): Promise<SessionData> {
     const sessionId = uuid()
 
-    const [session] = await db('user_sessions').insert({
+    const session = db('user_sessions').insertReturning({
       id: sessionId,
       user_id: data.userId,
       device_id: data.deviceId,
       user_agent: data.userAgent,
       ip_address: data.ip,
-      is_active: true,
-      last_used_at: new Date(),
-      expired_at: data.expiredAt,
-      created_at: new Date()
-    }).returning('*')
+      is_active: 1,
+      last_used_at: new Date().toISOString(),
+      expired_at: data.expiredAt.toISOString(),
+      created_at: new Date().toISOString()
+    }, ['*'])
 
     return session
   }
+
   async saveRefreshToken(sessionId: string, tokenHash: string, expiredAt: Date): Promise<void> {
-    await db('refresh_tokens').insert({
+    db('refresh_tokens').insert({
       id: uuid(),
       session_id: sessionId,
       token_hash: tokenHash,
-      revoked: false,
-      created_at: new Date(),
-      expired_at: expiredAt
+      revoked: 0,
+      created_at: new Date().toISOString(),
+      expired_at: expiredAt.toISOString()
     })
   }
+
   async getValidRefreshToken(sessionId: string): Promise<string | null> {
-    const token = await db('refresh_tokens')
+    const token = db('refresh_tokens')
       .where('session_id', sessionId)
-      .where('revoked', false)
-      .where('expired_at', '>', new Date())
+      .where('revoked', 0)
+      .where('expired_at', '>', new Date().toISOString())
       .orderBy('created_at', 'desc')
       .first()
 
     return token?.token_hash || null
   }
+
   async revokeRefreshTokens(sessionId: string): Promise<void> {
-    await db('refresh_tokens')
+    db('refresh_tokens')
       .where('session_id', sessionId)
-      .update({ revoked: true })
+      .update({ revoked: 1 })
   }
+
   async updateLastUsed(sessionId: string): Promise<void> {
-    await db('user_sessions')
+    db('user_sessions')
       .where('id', sessionId)
-      .update({ last_used_at: new Date() })
+      .update({ last_used_at: new Date().toISOString() })
   }
+
   async deactivateSession(sessionId: string): Promise<void> {
-    await db('user_sessions')
+    db('user_sessions')
       .where('id', sessionId)
-      .update({ is_active: false })
+      .update({ is_active: 0 })
 
     await this.revokeRefreshTokens(sessionId)
   }
-  async deactivateAllUserSessions(userId: string): Promise<void> {
-    const sessions = await db('user_sessions')
-      .where('user_id', userId)
-      .where('is_active', true)
-      .select('id')
 
-    await db('user_sessions')
+  async deactivateAllUserSessions(userId: string): Promise<void> {
+    const sessions = db('user_sessions')
       .where('user_id', userId)
-      .update({ is_active: false })
+      .where('is_active', 1)
+      .select(['id'])
+
+    db('user_sessions')
+      .where('user_id', userId)
+      .update({ is_active: 0 })
 
     for (const session of sessions) {
       await this.revokeRefreshTokens(session.id)
     }
   }
+
   async getActiveSession(sessionId: string): Promise<SessionData | null> {
-    return await db('user_sessions')
+    const session = db('user_sessions')
       .where('id', sessionId)
-      .where('is_active', true)
-      .where('expired_at', '>', new Date())
+      .where('is_active', 1)
+      .where('expired_at', '>', new Date().toISOString())
       .first()
+
+    return session || null
   }
+
   async getUserSessions(userId: string): Promise<SessionData[]> {
-    return await db('user_sessions')
+    return db('user_sessions')
       .where('user_id', userId)
-      .where('is_active', true)
-      .where('expired_at', '>', new Date())
+      .where('is_active', 1)
+      .where('expired_at', '>', new Date().toISOString())
       .orderBy('last_used_at', 'desc')
+      .select(['*'])
   }
 }

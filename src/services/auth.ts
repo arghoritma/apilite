@@ -2,13 +2,19 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/
 import { hashToken, verifyTokenHash } from '../utils/hash';
 import { RedisService } from './redis';
 import { SessionService, CreateSessionData } from './session';
-import db from '../config/database';
+import { db } from '../config/native-database';
 import { LoginResult } from '../types';
 
 
 export interface RefreshResult {
   accessToken: string;
   refreshToken: string;
+}
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
 }
 
 export class AuthService {
@@ -226,10 +232,9 @@ export class AuthService {
           const dbSessions = await this.sessionService.getUserSessions(userId);
 
           for (const dbSession of dbSessions) {
-            const user = await db('users')
+            const [user] = db<User>('users')
               .where('id', userId)
-              .select('id', 'name', 'email')
-              .first();
+              .select(['id', 'name', 'email'])
 
             if (user) {
               const sessionData = {
@@ -274,10 +279,9 @@ export class AuthService {
         const dbSessions = await this.sessionService.getUserSessions(userId);
 
         for (const dbSession of dbSessions) {
-          const user = await db('users')
+          const [user] = await db<User>('users')
             .where('id', userId)
-            .select('id', 'name', 'email')
-            .first();
+            .select(['id', 'name', 'email']);
 
           if (user) {
             sessions.push({

@@ -1,6 +1,6 @@
 import { Request, Response } from "ultimate-express";
 import { hashPassword, verifyPassword } from "../utils/hash";
-import db from "../config/database";
+import { db } from "../config/native-database";
 import { v4 as uuid } from "uuid";
 import { AuthService } from "../services/auth";
 import { SessionService } from "../services/session";
@@ -34,7 +34,7 @@ export default class UserController {
       const { name, email, password } = req.body;
 
       // Check if user already exists
-      const existingUser = await db("users").where({ email }).first();
+      const existingUser = db("users").where("email", email).first();
       if (existingUser) {
         return res.status(400).json({
           code: "USER_EXISTS",
@@ -47,16 +47,16 @@ export default class UserController {
       const userId = uuid();
 
       // Create user
-      const [user] = await db("users")
-        .insert({
+      const user = db("users")
+        .insertReturning({
           id: userId,
           name,
           email,
           password: hashedPassword,
-          created_at: new Date(),
-          updated_at: new Date(),
-        })
-        .returning(["id", "name", "email", "created_at"]);
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, ['id', 'name', 'email', 'created_at'])
+
 
       res.status(201).json({
         code: "REGISTER_SUCCESS",
@@ -85,7 +85,7 @@ export default class UserController {
       const { email, password, deviceId } = req.body;
 
       // Find user
-      const user = await db("users").where({ email }).first();
+      const user = db("users").where("email", email).first();
       if (!user) {
         return res.status(401).json({
           code: "INVALID_CREDENTIALS",
