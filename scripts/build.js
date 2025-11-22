@@ -29,6 +29,18 @@ async function build() {
       },
     });
 
+    // 3. Copy .env File (Bagian yang dilengkapi)
+    console.log("📁 Copying .env file...");
+
+    // Cek dulu apakah file .env ada di root project
+    if (await fs.pathExists(".env")) {
+      // Copy ke folder dist/.env
+      await fs.copy(".env", "dist/.env");
+      console.log("   -> .env copied successfully");
+    } else {
+      console.log("   -> ⚠️ .env file not found, skipping copy.");
+    }
+
     console.log("✅ Build completed successfully!");
   } catch (error) {
     console.error("❌ Build failed:", error);

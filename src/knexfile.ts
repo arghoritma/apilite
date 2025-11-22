@@ -1,5 +1,6 @@
 import type { Knex } from 'knex';
 import path from 'path';
+import 'dotenv/config';
 
 const config: { [key: string]: Knex.Config } = {
   development: {
@@ -17,7 +18,7 @@ const config: { [key: string]: Knex.Config } = {
   production: {
     client: 'better-sqlite3',
     connection: {
-      filename: path.join(__dirname, '../../db/prod.sqlite3')
+      filename: path.join(__dirname, `../db/${process.env.DB_NAME}.sqlite3`)
     },
     useNullAsDefault: true,
     migrations: {

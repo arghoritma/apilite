@@ -174,6 +174,11 @@ export default class SqliteDriver {
     // Aktifkan foreign keys
     this.db.pragma("foreign_keys = ON");
     console.log('🚀 Native Driver: Foreign Keys Enabled');
+
+    // set timeout untuk menghindari "database is locked" error
+    this.db.pragma("busy_timeout = 5000");
+    console.log('🚀 Native Driver: Busy Timeout Set to 5000ms');
+
   }
 
   // Factory method dengan Generic
